@@ -546,55 +546,140 @@ function renderComments(result) {
     a_verifier: { label: '🟡 À vérifier', cls: 'badge-yellow' },
   };
 
-  // Tag headings in doc for anchor — run after HTML injection
-  function tagDocHeadings() {
-    const editor = document.getElementById('docEditor');
-    const headings = editor.querySelectorAll('h1,h2,h3,h4');
-    headings.forEach((h, i) => { h.setAttribute('data-heading-index', i); });
-  }
-
   comments.forEach((c, i) => {
     const p = priorityLabels[c.priorite] || priorityLabels.a_verifier;
-    const cardId = `card-${i}`;
-    const replyId = `reply-${i}`;
-
     const card = document.createElement('div');
     card.className = 'ccard';
-    card.id = cardId;
+    card.id = `card-${i}`;
     card.style.animationDelay = `${i * 0.06}s`;
     card.dataset.section = c.section || '';
-    card.onclick = (e) => activateCard(e, cardId);
 
-    card.innerHTML = `
-      <div class="ccard-ref" title="Cliquer pour naviguer dans le document">
-        <span>🔗 ${escHtml(c.section || 'Général')}</span>
-        <span class="priority-badge ${p.cls}">${p.label}</span>
-      </div>
-      <div class="ccard-body" id="body-${i}">
-        <div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br><br>${escHtml(c.observation)}</div>
-        ${c.suggestion ? `<div class="ccard-suggestion">✏️ ${escHtml(c.suggestion)}</div>` : ''}
-      </div>
-      <div class="ccard-footer">
-        <div class="decision-row">
-          <button class="btn-decision btn-approve" onclick="approveCard(event,'${cardId}')">✓ Approuvé</button>
-          <button class="btn-decision btn-ignore" onclick="ignoreCard(event,'${cardId}')">✕ Ignorer</button>
-        </div>
-        <button class="btn-expand" onclick="toggleExpand(event,'body-${i}')">▾ Lire</button>
-      </div>
-      <div class="reply-box" id="${replyId}">
-        <textarea class="reply-input" placeholder="Votre réponse…"></textarea>
-        <div class="reply-actions">
-          <span class="reply-type">Réponse au commentaire</span>
-          <button class="btn-send" onclick="sendReply(event,'${replyId}','${cardId}')">Envoyer</button>
-        </div>
-      </div>`;
+    // Header
+    const ref = document.createElement('div');
+    ref.className = 'ccard-ref';
+    ref.title = 'Cliquer pour naviguer dans le document';
+    ref.innerHTML = `<span>🔗 ${escHtml(c.section || 'Général')}</span><span class="priority-badge ${p.cls}">${p.label}</span>`;
 
+    // Body
+    const cardBody = document.createElement('div');
+    cardBody.className = 'ccard-body';
+    cardBody.innerHTML = `<div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br><br>${escHtml(c.observation)}</div>${c.suggestion ? `<div class="ccard-suggestion">✏️ ${escHtml(c.suggestion)}</div>` : ''}`;
+
+    // Footer with buttons
+    const footer = document.createElement('div');
+    footer.className = 'ccard-footer';
+
+    const decisionRow = document.createElement('div');
+    decisionRow.className = 'decision-row';
+
+    const btnApprove = document.createElement('button');
+    btnApprove.className = 'btn-decision btn-approve';
+    btnApprove.textContent = '✓ Approuvé';
+    btnApprove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.classList.remove('active');
+      card.classList.add('approved');
+      const ex = ref.querySelector('.status-badge');
+      if (ex) ex.remove();
+      const s = document.createElement('span');
+      s.className = 'status-badge';
+      s.style.cssText = 'font-size:10px;font-weight:600;color:var(--green-mid)';
+      s.textContent = '✓ Approuvé';
+      ref.appendChild(s);
+      updateCount();
+      showToast('Commentaire approuvé · À intégrer dans votre doc');
+    });
+
+    const btnIgnore = document.createElement('button');
+    btnIgnore.className = 'btn-decision btn-ignore';
+    btnIgnore.textContent = '✕ Ignorer';
+    btnIgnore.addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.classList.add('ignoring');
+      setTimeout(() => { card.remove(); updateCount(); }, 280);
+      showToast('Commentaire ignoré');
+    });
+
+    const btnExpand = document.createElement('button');
+    btnExpand.className = 'btn-expand';
+    btnExpand.textContent = '▾ Lire';
+    btnExpand.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const expanded = cardBody.classList.toggle('expanded');
+      btnExpand.textContent = expanded ? '▴ Réduire' : '▾ Lire';
+    });
+
+    decisionRow.appendChild(btnApprove);
+    decisionRow.appendChild(btnIgnore);
+    footer.appendChild(decisionRow);
+    footer.appendChild(btnExpand);
+
+    // Card click → anchor scroll
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('textarea')) return;
+      document.querySelectorAll('.ccard').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      scrollToSection(card.dataset.section || '');
+    });
+
+    card.appendChild(ref);
+    card.appendChild(cardBody);
+    card.appendChild(footer);
     body.appendChild(card);
   });
 
-  tagDocHeadings();
+  // Tag headings for anchor after doc is rendered
+  setTimeout(() => {
+    const editor = document.getElementById('docEditor');
+    editor.querySelectorAll('h1,h2,h3,h4').forEach((h, i) => h.setAttribute('data-hi', i));
+  }, 100);
 
   updateCount();
+}
+
+// ─── ANCHOR SCROLL ────────────────────────────────────────────────────────────
+function scrollToSection(sectionText) {
+  if (!sectionText) return;
+  const editor = document.getElementById('docEditor');
+  const docPanel = document.getElementById('docPanel');
+  const headings = Array.from(editor.querySelectorAll('h1,h2,h3,h4'));
+  if (!headings.length) return;
+
+  const stopWords = new Set(['les','des','pour','dans','sur','avec','une','par','que','qui','est','sont','pas','non','tout','cette','aussi','mais','avoir','être','leur','leurs','plus','même','bien','très','comme','car','donc','ainsi','après','avant','lors','flux','section','impact','absence']);
+  const words = sectionText.toLowerCase()
+    .replace(/[^a-zàâéèêëîïôùûüç0-9\s·\-\.]/g, ' ')
+    .split(/[\s·\-\.]+/)
+    .filter(w => w.length >= 3 && !stopWords.has(w));
+
+  let bestEl = null, bestScore = 0;
+  headings.forEach(h => {
+    const hText = h.textContent.toLowerCase();
+    let score = 0;
+    words.forEach(w => { if (hText.includes(w)) score += w.length * 2; });
+    // Bonus: exact section number match (e.g. "4.4", "3.1")
+    const numMatch = sectionText.match(/\d+(\.\d+)*/);
+    if (numMatch && hText.includes(numMatch[0])) score += 20;
+    if (score > bestScore) { bestScore = score; bestEl = h; }
+  });
+
+  if (bestEl && bestScore > 0) {
+    // Scroll within docPanel
+    const panelTop = docPanel.getBoundingClientRect().top;
+    const elTop = bestEl.getBoundingClientRect().top;
+    const offset = elTop - panelTop - 60;
+    docPanel.scrollBy({ top: offset, behavior: 'smooth' });
+
+    // Gold highlight
+    bestEl.style.transition = 'background 0.2s ease';
+    bestEl.style.background = 'rgba(184,150,62,0.2)';
+    bestEl.style.padding = '2px 4px';
+    bestEl.style.borderRadius = '3px';
+    setTimeout(() => {
+      bestEl.style.background = '';
+      bestEl.style.padding = '';
+      bestEl.style.borderRadius = '';
+    }, 2500);
+  }
 }
 
 function renderError(msg) {
@@ -610,88 +695,6 @@ function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
 }
 
-// ─── CARD INTERACTIONS ────────────────────────────────────────────────────────
-function activateCard(e, cardId) {
-  if (e.target.closest('button') || e.target.closest('textarea')) return;
-  document.querySelectorAll('.ccard').forEach(c => c.classList.remove('active'));
-  const card = document.getElementById(cardId);
-  if (!card) return;
-  card.classList.add('active');
-
-  // Anchor: find best matching heading in doc by keywords
-  const sectionText = (card.dataset.section || '').toLowerCase();
-  if (sectionText) {
-    const editor = document.getElementById('docEditor');
-    const headings = editor.querySelectorAll('h1,h2,h3,h4');
-    let bestMatch = null;
-    let bestScore = 0;
-
-    // Extract meaningful words (3+ chars, skip common words)
-    const stopWords = new Set(['les','des','pour','dans','sur','avec','une','par','que','qui','est','sont','pas','non','tout','cette','aussi','mais','avoir','être','leur','leurs','plus','même','bien','très','comme','car','donc','ainsi','après','avant','lors']);
-    const words = sectionText.replace(/[^a-zàâéèêëîïôùûüç0-9\s]/g, '').split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
-
-    headings.forEach(h => {
-      const hText = h.textContent.toLowerCase();
-      let score = 0;
-      words.forEach(w => { if (hText.includes(w)) score += w.length; }); // weight by word length
-      if (score > bestScore) { bestScore = score; bestMatch = h; }
-    });
-
-    if (bestMatch && bestScore > 0) {
-      // Scroll the doc panel (not the heading itself)
-      const docPanel = document.getElementById('docPanel');
-      const editorRect = editor.getBoundingClientRect();
-      const headingRect = bestMatch.getBoundingClientRect();
-      const scrollTop = docPanel.scrollTop + (headingRect.top - editorRect.top) - 80;
-      docPanel.scrollTo({ top: scrollTop, behavior: 'smooth' });
-
-      // Highlight
-      bestMatch.style.transition = 'background 0.2s';
-      bestMatch.style.background = 'rgba(184,150,62,0.18)';
-      bestMatch.style.borderRadius = '2px';
-      setTimeout(() => { bestMatch.style.background = ''; bestMatch.style.borderRadius = ''; }, 2000);
-    }
-  }
-}
-
-function toggleExpand(e, bodyId) {
-  e.stopPropagation();
-  const body = document.getElementById(bodyId);
-  const btn = e.currentTarget;
-  const expanded = body.classList.toggle('expanded');
-  btn.textContent = expanded ? '▴ Réduire' : '▾ Lire';
-}
-
-function approveCard(e, id) {
-  e.stopPropagation();
-  const card = document.getElementById(id);
-  card.classList.remove('active');
-  card.classList.add('approved');
-  // Add approved label to header
-  const ref = card.querySelector('.ccard-ref');
-  const ex = ref?.querySelector('.status-badge'); if (ex) ex.remove();
-  if (ref) {
-    const s = document.createElement('span');
-    s.className = 'status-badge';
-    s.style.cssText = 'font-size:10px;font-weight:600;color:var(--green-mid)';
-    s.textContent = '✓ Approuvé';
-    ref.appendChild(s);
-  }
-  updateCount();
-  showToast('Commentaire approuvé · À intégrer dans votre doc');
-}
-
-function ignoreCard(e, id) {
-  e.stopPropagation();
-  const card = document.getElementById(id);
-  // Animate out then remove
-  card.classList.add('ignoring');
-  setTimeout(() => {
-    card.remove();
-    updateCount();
-  }, 280);
-  showToast('Commentaire ignoré');
-}
 
 function updateCount() {
   const open = document.querySelectorAll('.ccard:not(.approved)').length;
