@@ -80,14 +80,26 @@
   .btn-h-ghost:hover { background: rgba(255,255,255,0.08); color: white; }
 
   /* ── WORKSPACE ── */
-  .workspace { display: grid; grid-template-columns: 1fr 390px; flex: 1; overflow: hidden; }
+  .workspace { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── RESIZER ── */
+  .resizer {
+    width: 5px; background: var(--rule); cursor: col-resize; flex-shrink: 0;
+    transition: background 0.15s; position: relative; z-index: 5;
+  }
+  .resizer:hover, .resizer.dragging { background: var(--gold); }
+  .resizer::after {
+    content: '⋮'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); color: var(--muted); font-size: 14px;
+    pointer-events: none;
+  }
 
   /* ── LEFT : doc panel ── */
-  .doc-panel { overflow-y: auto; background: var(--white); border-right: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 0; }
+  .doc-panel { background: var(--white); border-right: none; display: flex; flex-direction: column; min-height: 0; min-width: 200px; overflow: hidden; flex-shrink: 0; }
   .doc-toolbar { padding: 7px 24px; border-bottom: 1px solid var(--rule-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; background: var(--paper); }
   .toolbar-info { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .toolbar-info span { color: var(--green); font-weight: 500; }
-  .doc-editor { flex: 1; padding: 48px 56px; outline: none; font-size: 14px; line-height: 1.85; color: var(--ink); overflow-y: auto; }
+  .doc-editor { flex: 1; padding: 48px 56px; outline: none; font-size: 14px; line-height: 1.85; color: var(--ink); overflow-y: auto; min-height: 0; }
   .doc-editor:focus { outline: none; }
   .doc-editor h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--green); margin-bottom: 8px; border-bottom: 2px solid var(--green); padding-bottom: 12px; margin-top: 0; }
   .doc-editor h2 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 500; color: var(--green-mid); margin-top: 36px; margin-bottom: 12px; }
@@ -116,7 +128,7 @@
   @keyframes loadBar { 0%{width:0%} 60%{width:85%} 90%{width:92%} 100%{width:92%} }
 
   /* ── RIGHT : comments panel ── */
-  .comments-panel { background: #fdfcf8; border-left: 1px solid #e8dfc8; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .comments-panel { background: #fdfcf8; border-left: 1px solid #e8dfc8; display: flex; flex-direction: column; overflow: hidden; position: relative; flex: 1; min-width: 280px; }
   .comments-header { padding: 13px 16px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .comments-title { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--green); }
   .open-count { font-size: 11px; background: var(--green); color: white; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
@@ -147,21 +159,27 @@
   .badge-orange { color: var(--orange); }
   .badge-yellow { color: var(--yellow); }
 
-  /* Fix 3: scrollable body with visible scrollbar */
-  .ccard-body { padding: 10px 12px; max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
-  .ccard-body::-webkit-scrollbar { width: 4px; }
-  .ccard-body::-webkit-scrollbar-track { background: transparent; }
-  .ccard-body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+  /* Card body: collapsed by default, expandable */
+  .ccard-body { padding: 10px 12px; max-height: 120px; overflow: hidden; transition: max-height 0.25s ease; }
+  .ccard-body.expanded { max-height: 480px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  .ccard-body.expanded::-webkit-scrollbar { width: 4px; }
+  .ccard-body.expanded::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
 
   .ccard-grace { font-size: 12px; color: var(--ink); line-height: 1.65; margin-bottom: 8px; }
   .ccard-suggestion { font-size: 12px; color: var(--green); background: var(--green-light); border-left: 2px solid var(--green-mid); padding: 8px 10px; margin-bottom: 10px; line-height: 1.6; }
 
-  .decision-row { display: flex; gap: 6px; margin-bottom: 6px; }
-  .btn-decision { flex: 1; padding: 6px 8px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; border-radius: 2px; cursor: pointer; border: 1px solid; transition: all 0.13s; }
+  /* Footer: always visible with expand + approve/ignore */
+  .ccard-footer { padding: 7px 12px; border-top: 1px solid var(--rule-light); display: flex; align-items: center; gap: 6px; background: var(--paper); flex-shrink: 0; }
+  .ccard.approved .ccard-footer { display: none; }
+  .ccard.approved .ccard-body { display: none; }
+  .btn-expand { background: none; border: 1px solid var(--rule); cursor: pointer; font-size: 11px; color: var(--muted); padding: 3px 8px; border-radius: 2px; transition: all 0.13s; font-family: 'DM Sans', sans-serif; white-space: nowrap; }
+  .btn-expand:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+  .decision-row { display: flex; gap: 6px; flex: 1; }
+  .btn-decision { flex: 1; padding: 5px 8px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; border-radius: 2px; cursor: pointer; border: 1px solid; transition: all 0.13s; }
   .btn-approve { color: var(--green-mid); border-color: var(--green-mid); background: transparent; }
   .btn-approve:hover { background: var(--green-light); }
   .btn-ignore { color: var(--muted); border-color: var(--rule); background: transparent; }
-  .btn-ignore:hover { background: var(--paper); }
+  .btn-ignore:hover { background: #fee2e2; color: var(--red); border-color: var(--red); }
 
   .btn-reply-toggle { width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; border: 1px dashed var(--rule); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.13s; text-align: left; }
   .btn-reply-toggle:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
@@ -280,6 +298,9 @@
         <p style="color:var(--muted);font-style:italic;text-align:center;margin-top:80px;">Le contenu de votre document apparaîtra ici après le lancement de la révision.</p>
       </div>
     </div>
+
+    <!-- RESIZER -->
+    <div class="resizer" id="resizer"></div>
 
     <!-- RIGHT : commentaires Grace -->
     <div class="comments-panel" id="commentsPanel">
@@ -525,6 +546,13 @@ function renderComments(result) {
     a_verifier: { label: '🟡 À vérifier', cls: 'badge-yellow' },
   };
 
+  // Tag headings in doc for anchor — run after HTML injection
+  function tagDocHeadings() {
+    const editor = document.getElementById('docEditor');
+    const headings = editor.querySelectorAll('h1,h2,h3,h4');
+    headings.forEach((h, i) => { h.setAttribute('data-heading-index', i); });
+  }
+
   comments.forEach((c, i) => {
     const p = priorityLabels[c.priorite] || priorityLabels.a_verifier;
     const cardId = `card-${i}`;
@@ -534,7 +562,6 @@ function renderComments(result) {
     card.className = 'ccard';
     card.id = cardId;
     card.style.animationDelay = `${i * 0.06}s`;
-    // Store section keyword for anchor scroll
     card.dataset.section = c.section || '';
     card.onclick = (e) => activateCard(e, cardId);
 
@@ -543,14 +570,16 @@ function renderComments(result) {
         <span>🔗 ${escHtml(c.section || 'Général')}</span>
         <span class="priority-badge ${p.cls}">${p.label}</span>
       </div>
-      <div class="ccard-body">
+      <div class="ccard-body" id="body-${i}">
         <div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br><br>${escHtml(c.observation)}</div>
         ${c.suggestion ? `<div class="ccard-suggestion">✏️ ${escHtml(c.suggestion)}</div>` : ''}
+      </div>
+      <div class="ccard-footer">
         <div class="decision-row">
           <button class="btn-decision btn-approve" onclick="approveCard(event,'${cardId}')">✓ Approuvé</button>
           <button class="btn-decision btn-ignore" onclick="ignoreCard(event,'${cardId}')">✕ Ignorer</button>
         </div>
-        <button class="btn-reply-toggle" onclick="toggleReply(event,'${replyId}')">↩ Répondre à Grace…</button>
+        <button class="btn-expand" onclick="toggleExpand(event,'body-${i}')">▾ Lire</button>
       </div>
       <div class="reply-box" id="${replyId}">
         <textarea class="reply-input" placeholder="Votre réponse…"></textarea>
@@ -562,6 +591,8 @@ function renderComments(result) {
 
     body.appendChild(card);
   });
+
+  tagDocHeadings();
 
   updateCount();
 }
@@ -587,28 +618,48 @@ function activateCard(e, cardId) {
   if (!card) return;
   card.classList.add('active');
 
-  // Fix 2: scroll doc left panel to matching section keyword
-  const sectionText = card.dataset.section || '';
+  // Anchor: find best matching heading in doc by keywords
+  const sectionText = (card.dataset.section || '').toLowerCase();
   if (sectionText) {
     const editor = document.getElementById('docEditor');
-    const headings = editor.querySelectorAll('h1, h2, h3, h4');
+    const headings = editor.querySelectorAll('h1,h2,h3,h4');
     let bestMatch = null;
-    const keywords = sectionText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+    let bestScore = 0;
+
+    // Extract meaningful words (3+ chars, skip common words)
+    const stopWords = new Set(['les','des','pour','dans','sur','avec','une','par','que','qui','est','sont','pas','non','tout','cette','aussi','mais','avoir','être','leur','leurs','plus','même','bien','très','comme','car','donc','ainsi','après','avant','lors']);
+    const words = sectionText.replace(/[^a-zàâéèêëîïôùûüç0-9\s]/g, '').split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
+
     headings.forEach(h => {
       const hText = h.textContent.toLowerCase();
-      const score = keywords.filter(k => hText.includes(k)).length;
-      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
-        bestMatch = { el: h, score };
-      }
+      let score = 0;
+      words.forEach(w => { if (hText.includes(w)) score += w.length; }); // weight by word length
+      if (score > bestScore) { bestScore = score; bestMatch = h; }
     });
-    if (bestMatch) {
-      bestMatch.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      // Brief highlight
-      bestMatch.el.style.transition = 'background 0.3s';
-      bestMatch.el.style.background = 'rgba(184,150,62,0.15)';
-      setTimeout(() => { bestMatch.el.style.background = ''; }, 1500);
+
+    if (bestMatch && bestScore > 0) {
+      // Scroll the doc panel (not the heading itself)
+      const docPanel = document.getElementById('docPanel');
+      const editorRect = editor.getBoundingClientRect();
+      const headingRect = bestMatch.getBoundingClientRect();
+      const scrollTop = docPanel.scrollTop + (headingRect.top - editorRect.top) - 80;
+      docPanel.scrollTo({ top: scrollTop, behavior: 'smooth' });
+
+      // Highlight
+      bestMatch.style.transition = 'background 0.2s';
+      bestMatch.style.background = 'rgba(184,150,62,0.18)';
+      bestMatch.style.borderRadius = '2px';
+      setTimeout(() => { bestMatch.style.background = ''; bestMatch.style.borderRadius = ''; }, 2000);
     }
   }
+}
+
+function toggleExpand(e, bodyId) {
+  e.stopPropagation();
+  const body = document.getElementById(bodyId);
+  const btn = e.currentTarget;
+  const expanded = body.classList.toggle('expanded');
+  btn.textContent = expanded ? '▴ Réduire' : '▾ Lire';
 }
 
 function approveCard(e, id) {
@@ -707,6 +758,45 @@ function openFeedback() { document.getElementById('feedbackModal').classList.add
 function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
 function submitFeedback() { closeFeedback(); showToast('Feedback enregistré · Intégration sous 48h'); }
 document.getElementById('feedbackModal').addEventListener('click', function(e) { if (e.target === this) closeFeedback(); });
+
+// ─── RESIZER ─────────────────────────────────────────────────────────────────
+(function initResizer() {
+  const resizer = document.getElementById('resizer');
+  const docPanel = document.getElementById('docPanel');
+  const workspace = document.querySelector('.workspace');
+
+  // Set initial width
+  docPanel.style.width = '55%';
+
+  let startX, startW;
+
+  resizer.addEventListener('mousedown', (e) => {
+    startX = e.clientX;
+    startW = docPanel.offsetWidth;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    function onMove(e) {
+      const delta = e.clientX - startX;
+      const totalW = workspace.offsetWidth;
+      const newW = Math.max(200, Math.min(totalW - 280 - 5, startW + delta));
+      docPanel.style.width = newW + 'px';
+      docPanel.style.flex = 'none';
+    }
+
+    function onUp() {
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+})();
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
 function showToast(msg) {
