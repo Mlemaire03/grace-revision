@@ -83,11 +83,11 @@
   .workspace { display: grid; grid-template-columns: 1fr 390px; flex: 1; overflow: hidden; }
 
   /* ── LEFT : doc panel ── */
-  .doc-panel { overflow-y: auto; background: var(--white); border-right: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .doc-panel { overflow-y: auto; background: var(--white); border-right: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 0; }
   .doc-toolbar { padding: 7px 24px; border-bottom: 1px solid var(--rule-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; background: var(--paper); }
   .toolbar-info { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
   .toolbar-info span { color: var(--green); font-weight: 500; }
-  .doc-editor { flex: 1; padding: 48px 56px; outline: none; font-size: 14px; line-height: 1.85; color: var(--ink); min-height: 100%; }
+  .doc-editor { flex: 1; padding: 48px 56px; outline: none; font-size: 14px; line-height: 1.85; color: var(--ink); overflow-y: auto; }
   .doc-editor:focus { outline: none; }
   .doc-editor h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--green); margin-bottom: 8px; border-bottom: 2px solid var(--green); padding-bottom: 12px; margin-top: 0; }
   .doc-editor h2 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 500; color: var(--green-mid); margin-top: 36px; margin-bottom: 12px; }
@@ -132,20 +132,25 @@
   .ccard { background: var(--white); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; animation: fadeInUp 0.3s ease both; }
   @keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
   .ccard.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(184,150,62,0.12); }
+  /* Approved: collapsed, green left border */
   .ccard.approved { border-left: 3px solid var(--approved-border); background: var(--approved-bg); cursor: default; }
-  .ccard.ignored { opacity: 0.45; background: var(--ignored-bg); cursor: default; }
+  .ccard.approved .ccard-body { display: none; }
+  .ccard.approved .reply-box { display: none !important; }
+  /* Ignored: fade out then remove */
+  .ccard.ignoring { opacity: 0; transform: translateX(20px); transition: opacity 0.25s ease, transform 0.25s ease; }
 
-  .ccard-ref { padding: 7px 12px; background: var(--green-light); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-mid); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .ccard.approved .ccard-ref { background: #ddeee3; color: var(--green); }
-  .ccard.ignored .ccard-ref { background: #efefef; color: var(--muted); }
+  .ccard-ref { padding: 7px 12px; background: var(--green-light); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-mid); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; cursor: pointer; }
+  .ccard.approved .ccard-ref { background: #ddeee3; color: var(--green); cursor: default; }
 
   .priority-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 2px; }
   .badge-red { color: var(--red); }
   .badge-orange { color: var(--orange); }
   .badge-yellow { color: var(--yellow); }
 
-  .ccard-body { padding: 10px 12px; max-height: 300px; overflow-y: auto; }
-  .ccard-body::-webkit-scrollbar { width: 3px; }
+  /* Fix 3: scrollable body with visible scrollbar */
+  .ccard-body { padding: 10px 12px; max-height: 260px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  .ccard-body::-webkit-scrollbar { width: 4px; }
+  .ccard-body::-webkit-scrollbar-track { background: transparent; }
   .ccard-body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
 
   .ccard-grace { font-size: 12px; color: var(--ink); line-height: 1.65; margin-bottom: 8px; }
@@ -529,19 +534,21 @@ function renderComments(result) {
     card.className = 'ccard';
     card.id = cardId;
     card.style.animationDelay = `${i * 0.06}s`;
+    // Store section keyword for anchor scroll
+    card.dataset.section = c.section || '';
     card.onclick = (e) => activateCard(e, cardId);
 
     card.innerHTML = `
-      <div class="ccard-ref">
-        <span>${c.section || 'Général'}</span>
+      <div class="ccard-ref" title="Cliquer pour naviguer dans le document">
+        <span>🔗 ${escHtml(c.section || 'Général')}</span>
         <span class="priority-badge ${p.cls}">${p.label}</span>
       </div>
       <div class="ccard-body">
-        <div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br>${escHtml(c.observation)}</div>
+        <div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br><br>${escHtml(c.observation)}</div>
         ${c.suggestion ? `<div class="ccard-suggestion">✏️ ${escHtml(c.suggestion)}</div>` : ''}
         <div class="decision-row">
           <button class="btn-decision btn-approve" onclick="approveCard(event,'${cardId}')">✓ Approuvé</button>
-          <button class="btn-decision btn-ignore" onclick="ignoreCard(event,'${cardId}')">✕ Ignoré</button>
+          <button class="btn-decision btn-ignore" onclick="ignoreCard(event,'${cardId}')">✕ Ignorer</button>
         </div>
         <button class="btn-reply-toggle" onclick="toggleReply(event,'${replyId}')">↩ Répondre à Grace…</button>
       </div>
@@ -576,15 +583,49 @@ function escHtml(str) {
 function activateCard(e, cardId) {
   if (e.target.closest('button') || e.target.closest('textarea')) return;
   document.querySelectorAll('.ccard').forEach(c => c.classList.remove('active'));
-  document.getElementById(cardId)?.classList.add('active');
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.add('active');
+
+  // Fix 2: scroll doc left panel to matching section keyword
+  const sectionText = card.dataset.section || '';
+  if (sectionText) {
+    const editor = document.getElementById('docEditor');
+    const headings = editor.querySelectorAll('h1, h2, h3, h4');
+    let bestMatch = null;
+    const keywords = sectionText.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+    headings.forEach(h => {
+      const hText = h.textContent.toLowerCase();
+      const score = keywords.filter(k => hText.includes(k)).length;
+      if (score > 0 && (!bestMatch || score > bestMatch.score)) {
+        bestMatch = { el: h, score };
+      }
+    });
+    if (bestMatch) {
+      bestMatch.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Brief highlight
+      bestMatch.el.style.transition = 'background 0.3s';
+      bestMatch.el.style.background = 'rgba(184,150,62,0.15)';
+      setTimeout(() => { bestMatch.el.style.background = ''; }, 1500);
+    }
+  }
 }
 
 function approveCard(e, id) {
   e.stopPropagation();
   const card = document.getElementById(id);
-  card.classList.remove('active'); card.classList.add('approved');
-  addStatusBadge(card, 'approved');
-  hideDecisionUI(card);
+  card.classList.remove('active');
+  card.classList.add('approved');
+  // Add approved label to header
+  const ref = card.querySelector('.ccard-ref');
+  const ex = ref?.querySelector('.status-badge'); if (ex) ex.remove();
+  if (ref) {
+    const s = document.createElement('span');
+    s.className = 'status-badge';
+    s.style.cssText = 'font-size:10px;font-weight:600;color:var(--green-mid)';
+    s.textContent = '✓ Approuvé';
+    ref.appendChild(s);
+  }
   updateCount();
   showToast('Commentaire approuvé · À intégrer dans votre doc');
 }
@@ -592,31 +633,17 @@ function approveCard(e, id) {
 function ignoreCard(e, id) {
   e.stopPropagation();
   const card = document.getElementById(id);
-  card.classList.remove('active'); card.classList.add('ignored');
-  addStatusBadge(card, 'ignored');
-  hideDecisionUI(card);
-  updateCount();
+  // Animate out then remove
+  card.classList.add('ignoring');
+  setTimeout(() => {
+    card.remove();
+    updateCount();
+  }, 280);
   showToast('Commentaire ignoré');
 }
 
-function addStatusBadge(card, type) {
-  const ref = card.querySelector('.ccard-ref');
-  if (!ref) return;
-  const ex = ref.querySelector('.status-badge'); if (ex) ex.remove();
-  const s = document.createElement('span');
-  s.className = 'status-badge';
-  s.style.cssText = `font-size:10px;font-weight:600;color:${type === 'approved' ? 'var(--green-mid)' : 'var(--muted)'}`;
-  s.textContent = type === 'approved' ? '✓ Approuvé' : '✕ Ignoré';
-  ref.appendChild(s);
-}
-
-function hideDecisionUI(card) {
-  const dr = card.querySelector('.decision-row'); if (dr) dr.style.display = 'none';
-  const rt = card.querySelector('.btn-reply-toggle'); if (rt) rt.style.display = 'none';
-}
-
 function updateCount() {
-  const open = document.querySelectorAll('.ccard:not(.approved):not(.ignored)').length;
+  const open = document.querySelectorAll('.ccard:not(.approved)').length;
   document.getElementById('openCount').textContent = open + (open > 1 ? ' ouverts' : ' ouvert');
 }
 
