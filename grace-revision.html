@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grace — Mode Révision</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root {
+    --ink: #0f0f0f;
+    --paper: #f7f5f1;
+    --white: #ffffff;
+    --green: #1a3a2a;
+    --green-mid: #2d5a40;
+    --green-light: #e8f0eb;
+    --gold: #b8963e;
+    --gold-light: rgba(184,150,62,0.12);
+    --muted: #7a756e;
+    --rule: #e0dbd3;
+    --rule-light: #ede8e1;
+    --red: #c0392b;
+    --orange: #c75000;
+    --yellow: #a07d10;
+    --approved-bg: #f0f7f2;
+    --approved-border: #2d5a40;
+    --ignored-bg: #f5f5f5;
+    --header-h: 52px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); font-size: 14px; overflow: hidden; height: 100vh; }
+
+  /* ── LANDING ── */
+  #landing {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; background: var(--green); flex-direction: column;
+  }
+  .landing-logo { font-family: 'Cormorant Garamond', serif; font-size: 52px; font-weight: 300; color: var(--gold); letter-spacing: 0.22em; margin-bottom: 6px; }
+  .landing-tagline { font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 56px; }
+
+  .landing-card { background: var(--white); width: 500px; padding: 44px; border-top: 3px solid var(--gold); }
+  .landing-card h2 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--green); margin-bottom: 6px; }
+  .landing-card p { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.65; }
+
+  .upload-zone {
+    border: 1px dashed var(--rule); padding: 36px 24px; text-align: center;
+    cursor: pointer; transition: all 0.2s; margin-bottom: 24px; background: var(--paper);
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--gold); background: var(--gold-light); }
+  .upload-zone.has-file { border: 1px solid var(--green); background: var(--green-light); }
+  .upload-icon { font-size: 28px; margin-bottom: 10px; }
+  .upload-label { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .upload-label strong { color: var(--green); }
+  .upload-filename { font-size: 13px; font-weight: 500; color: var(--green); margin-top: 4px; }
+
+  .form-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--green); margin-bottom: 7px; }
+  .form-textarea { width: 100%; border: 1px solid var(--rule); padding: 10px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--white); color: var(--ink); resize: none; min-height: 72px; line-height: 1.6; margin-bottom: 24px; transition: border-color 0.15s; }
+  .form-textarea:focus { border-color: var(--green); }
+
+  .btn-start { width: 100%; padding: 14px; background: var(--green); color: white; border: none; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; letter-spacing: 0.1em; cursor: pointer; transition: background 0.15s; }
+  .btn-start:hover:not(:disabled) { background: var(--green-mid); }
+  .btn-start:disabled { opacity: 0.5; cursor: default; }
+
+  /* ── APP ── */
+  #app { display: none; flex-direction: column; height: 100vh; }
+
+  /* ── HEADER ── */
+  .header { height: var(--header-h); background: var(--green); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; gap: 16px; }
+  .header-left { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .h-logo { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--gold); letter-spacing: 0.14em; flex-shrink: 0; }
+  .h-divider { width: 1px; height: 18px; background: rgba(255,255,255,0.15); flex-shrink: 0; }
+  .h-spec { font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 300; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .maturity-pill { font-size: 11px; font-weight: 500; padding: 4px 11px; border-radius: 2px; background: rgba(199,80,0,0.2); color: #f0a060; border: 1px solid rgba(199,80,0,0.35); }
+  .h-date { font-size: 11px; color: rgba(255,255,255,0.3); }
+  .btn-h { font-size: 11px; font-weight: 500; padding: 6px 14px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; border-radius: 2px; transition: all 0.15s; white-space: nowrap; }
+  .btn-h-ghost { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.2); }
+  .btn-h-ghost:hover { background: rgba(255,255,255,0.08); color: white; }
+
+  /* ── WORKSPACE ── */
+  .workspace { display: grid; grid-template-columns: 1fr 390px; flex: 1; overflow: hidden; }
+
+  /* ── LEFT : doc panel ── */
+  .doc-panel { overflow-y: auto; background: var(--white); border-right: 1px solid var(--rule); display: flex; flex-direction: column; }
+  .doc-toolbar { padding: 7px 24px; border-bottom: 1px solid var(--rule-light); display: flex; align-items: center; gap: 10px; flex-shrink: 0; background: var(--paper); }
+  .toolbar-info { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .toolbar-info span { color: var(--green); font-weight: 500; }
+  .doc-editor { flex: 1; padding: 48px 56px; outline: none; font-size: 14px; line-height: 1.85; color: var(--ink); min-height: 100%; }
+  .doc-editor:focus { outline: none; }
+  .doc-editor h1 { font-family: 'Cormorant Garamond', serif; font-size: 26px; font-weight: 400; color: var(--green); margin-bottom: 8px; border-bottom: 2px solid var(--green); padding-bottom: 12px; margin-top: 0; }
+  .doc-editor h2 { font-family: 'Cormorant Garamond', serif; font-size: 19px; font-weight: 500; color: var(--green-mid); margin-top: 36px; margin-bottom: 12px; }
+  .doc-editor h3 { font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 22px; margin-bottom: 8px; }
+  .doc-editor p { margin-bottom: 12px; }
+  .doc-editor ul, .doc-editor ol { padding-left: 20px; margin-bottom: 12px; }
+  .doc-editor li { margin-bottom: 6px; }
+  .doc-editor table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+  .doc-editor th { background: var(--green); color: white; padding: 8px 12px; text-align: left; font-weight: 500; }
+  .doc-editor td { padding: 8px 12px; border: 1px solid var(--rule); vertical-align: top; }
+  .doc-editor tr:nth-child(even) td { background: var(--paper); }
+  .doc-meta { font-size: 11px; color: var(--muted); margin-bottom: 28px; display: flex; gap: 16px; flex-wrap: wrap; padding-bottom: 16px; border-bottom: 1px solid var(--rule-light); }
+
+  /* ── LOADING STATE ── */
+  #loadingState {
+    display: none; position: absolute; inset: 0;
+    background: rgba(26,58,42,0.92); z-index: 50;
+    flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+  }
+  #loadingState.show { display: flex; }
+  .loading-logo { font-family: 'Cormorant Garamond', serif; font-size: 36px; color: var(--gold); letter-spacing: 0.2em; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:0.6} 50%{opacity:1} }
+  .loading-msg { font-size: 13px; color: rgba(255,255,255,0.6); letter-spacing: 0.08em; }
+  .loading-bar { width: 200px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .loading-bar-fill { height: 100%; background: var(--gold); width: 0%; animation: loadBar 3s ease-in-out infinite; }
+  @keyframes loadBar { 0%{width:0%} 60%{width:85%} 90%{width:92%} 100%{width:92%} }
+
+  /* ── RIGHT : comments panel ── */
+  .comments-panel { background: #fdfcf8; border-left: 1px solid #e8dfc8; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+  .comments-header { padding: 13px 16px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .comments-title { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--green); }
+  .open-count { font-size: 11px; background: var(--green); color: white; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+
+  /* Empty + analyzing states */
+  .panel-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; color: var(--muted); }
+  .panel-placeholder-icon { font-size: 32px; opacity: 0.4; }
+  .panel-placeholder-text { font-size: 12px; line-height: 1.6; }
+
+  .comments-body { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+  /* ── COMMENT CARDS ── */
+  .ccard { background: var(--white); border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; transition: box-shadow 0.15s, border-color 0.15s; cursor: pointer; animation: fadeInUp 0.3s ease both; }
+  @keyframes fadeInUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .ccard.active { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(184,150,62,0.12); }
+  .ccard.approved { border-left: 3px solid var(--approved-border); background: var(--approved-bg); cursor: default; }
+  .ccard.ignored { opacity: 0.45; background: var(--ignored-bg); cursor: default; }
+
+  .ccard-ref { padding: 7px 12px; background: var(--green-light); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green-mid); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .ccard.approved .ccard-ref { background: #ddeee3; color: var(--green); }
+  .ccard.ignored .ccard-ref { background: #efefef; color: var(--muted); }
+
+  .priority-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 2px; }
+  .badge-red { color: var(--red); }
+  .badge-orange { color: var(--orange); }
+  .badge-yellow { color: var(--yellow); }
+
+  .ccard-body { padding: 10px 12px; max-height: 300px; overflow-y: auto; }
+  .ccard-body::-webkit-scrollbar { width: 3px; }
+  .ccard-body::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+
+  .ccard-grace { font-size: 12px; color: var(--ink); line-height: 1.65; margin-bottom: 8px; }
+  .ccard-suggestion { font-size: 12px; color: var(--green); background: var(--green-light); border-left: 2px solid var(--green-mid); padding: 8px 10px; margin-bottom: 10px; line-height: 1.6; }
+
+  .decision-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .btn-decision { flex: 1; padding: 6px 8px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; border-radius: 2px; cursor: pointer; border: 1px solid; transition: all 0.13s; }
+  .btn-approve { color: var(--green-mid); border-color: var(--green-mid); background: transparent; }
+  .btn-approve:hover { background: var(--green-light); }
+  .btn-ignore { color: var(--muted); border-color: var(--rule); background: transparent; }
+  .btn-ignore:hover { background: var(--paper); }
+
+  .btn-reply-toggle { width: 100%; padding: 5px 8px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; border: 1px dashed var(--rule); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.13s; text-align: left; }
+  .btn-reply-toggle:hover { border-color: var(--green); color: var(--green); background: var(--green-light); }
+
+  .thread-history { border-top: 1px solid var(--rule-light); padding: 8px 12px; display: flex; flex-direction: column; gap: 7px; }
+  .thread-msg { font-size: 12px; line-height: 1.6; }
+  .thread-msg .msg-author { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+  .msg-ba { color: #2c5f8a; }
+  .msg-system { color: var(--muted); font-style: italic; font-size: 11px; }
+
+  .reply-box { display: none; padding: 8px 12px; border-top: 1px solid var(--rule-light); background: var(--paper); }
+  .reply-box.open { display: block; }
+  .reply-input { width: 100%; border: 1px solid var(--rule); padding: 7px 10px; font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--white); color: var(--ink); resize: none; min-height: 56px; line-height: 1.5; border-radius: 2px; margin-bottom: 6px; transition: border-color 0.15s; }
+  .reply-input:focus { border-color: var(--green); }
+  .reply-actions { display: flex; justify-content: space-between; align-items: center; }
+  .reply-type { font-size: 10px; color: var(--muted); font-style: italic; }
+  .btn-send { padding: 5px 14px; font-size: 11px; font-weight: 500; font-family: 'DM Sans', sans-serif; background: var(--green); color: white; border: none; border-radius: 2px; cursor: pointer; }
+  .btn-send:hover { background: var(--green-mid); }
+
+  /* ── FOOTER ── */
+  .comments-footer { padding: 12px; border-top: 1px solid var(--rule); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; background: #fdfcf8; }
+  .btn-full { width: 100%; padding: 10px; font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif; border-radius: 2px; cursor: pointer; transition: all 0.15s; letter-spacing: 0.04em; }
+  .btn-new-rev { background: var(--green); color: white; border: none; }
+  .btn-new-rev:hover { background: var(--green-mid); }
+  .btn-download { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn-download:hover { background: var(--green-light); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,15,15,0.55); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); width: 460px; max-width: 92vw; border-top: 3px solid var(--gold); padding: 32px; animation: slideUp 0.2s ease; }
+  @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:translateY(0);opacity:1} }
+  .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 22px; font-weight: 400; color: var(--green); margin-bottom: 5px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 24px; line-height: 1.6; }
+  .form-group { margin-bottom: 16px; }
+  .form-select, .form-input { width: 100%; border: 1px solid var(--rule); padding: 9px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: var(--white); color: var(--ink); border-radius: 2px; transition: border-color 0.15s; }
+  .form-select:focus, .form-input:focus { border-color: var(--green); }
+  .modal-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+  .btn-cancel { padding: 8px 18px; font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif; border: 1px solid var(--rule); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; }
+  .btn-cancel:hover { border-color: var(--muted); color: var(--ink); }
+  .btn-submit { padding: 8px 18px; font-size: 12px; font-weight: 500; font-family: 'DM Sans', sans-serif; background: var(--green); color: white; border: none; border-radius: 2px; cursor: pointer; }
+  .btn-submit:hover { background: var(--green-mid); }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px); background: var(--green); color: white; padding: 10px 20px; border-radius: 3px; font-size: 13px; z-index: 300; transition: transform 0.25s; pointer-events: none; white-space: nowrap; border-top: 2px solid var(--gold); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── ERROR ── */
+  .error-card { background: #fff5f5; border: 1px solid #fecaca; border-left: 3px solid var(--red); padding: 14px 16px; margin: 12px; font-size: 12px; color: #7f1d1d; line-height: 1.6; border-radius: 2px; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ══════════ LANDING ══════════ -->
+<div id="landing">
+  <div class="landing-logo">GRACE</div>
+  <div class="landing-tagline">Mode révision · Spécification fonctionnelle</div>
+  <div class="landing-card">
+    <h2>Démarrer une révision</h2>
+    <p>Uploadez votre spécification au format Word. Grace l'analysera et produira ses commentaires dans le panneau de révision.</p>
+
+    <div class="upload-zone" id="uploadZone" onclick="triggerUpload()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-label" id="uploadLabel">
+        <strong>Cliquez pour uploader</strong> ou glissez votre fichier ici<br>
+        <span style="font-size:11px;color:#bbb">Format .docx · Max 10 MB</span>
+      </div>
+      <div class="upload-filename" id="uploadFilename" style="display:none"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".docx" style="display:none" onchange="handleFile(this)">
+
+    <div class="form-group">
+      <label class="form-label">Note pour Grace <span style="font-weight:300;text-transform:none;letter-spacing:0">(optionnel)</span></label>
+      <textarea class="form-textarea" id="noteInput" placeholder="Ex : Focus particulier sur le flux commandes et la section recette. La partie logistique est encore incomplète."></textarea>
+    </div>
+
+    <button class="btn-start" id="btnStart" onclick="startRevision()" disabled>Lancer la révision →</button>
+  </div>
+</div>
+
+<!-- ══════════ APP ══════════ -->
+<div id="app" style="position:relative;">
+
+  <!-- Loading overlay -->
+  <div id="loadingState">
+    <div class="loading-logo">GRACE</div>
+    <div class="loading-msg">Analyse de la spécification en cours…</div>
+    <div class="loading-bar"><div class="loading-bar-fill"></div></div>
+  </div>
+
+  <header class="header">
+    <div class="header-left">
+      <div class="h-logo">GRACE</div>
+      <div class="h-divider"></div>
+      <div class="h-spec" id="headerSpecName">Spécification fonctionnelle</div>
+    </div>
+    <div class="header-right">
+      <div class="maturity-pill" id="maturityPill">⏳ Analyse…</div>
+      <div class="h-date" id="headerDate"></div>
+      <button class="btn-h btn-h-ghost" onclick="openFeedback()">+ Feedback Context Pack</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+
+    <!-- LEFT : doc éditable -->
+    <div class="doc-panel" id="docPanel">
+      <div class="doc-toolbar">
+        <div class="toolbar-info">✏️ <span>Édition libre</span> — Ctrl+B gras · Ctrl+I italique</div>
+      </div>
+      <div class="doc-editor" id="docEditor" contenteditable="true" spellcheck="false">
+        <p style="color:var(--muted);font-style:italic;text-align:center;margin-top:80px;">Le contenu de votre document apparaîtra ici après le lancement de la révision.</p>
+      </div>
+    </div>
+
+    <!-- RIGHT : commentaires Grace -->
+    <div class="comments-panel" id="commentsPanel">
+      <div class="comments-header">
+        <span class="comments-title">Révision Grace</span>
+        <span class="open-count" id="openCount">—</span>
+      </div>
+
+      <div id="panelPlaceholder" class="panel-placeholder">
+        <div class="panel-placeholder-icon">✦</div>
+        <div class="panel-placeholder-text">Grace analyse votre document…<br>Les commentaires apparaîtront ici.</div>
+      </div>
+
+      <div class="comments-body" id="commentsBody" style="display:none"></div>
+
+      <div class="comments-footer">
+        <button class="btn-full btn-new-rev" onclick="openLanding()">↺ Nouvelle révision</button>
+        <button class="btn-full btn-download" onclick="downloadDoc()">⬇ Télécharger la spécification</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FEEDBACK MODAL -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal">
+    <div class="modal-title">Feedback Context Pack</div>
+    <div class="modal-sub">Ce feedback sera intégré dans le Context Pack Bongénie lors de la prochaine mise à jour de Grace (sous 48h).</div>
+    <div class="form-group">
+      <label class="form-label">Section concernée</label>
+      <select class="form-select">
+        <option>03 · Cartographie SI</option>
+        <option>04 · Glossaire métier</option>
+        <option>05 · Flux métier critiques</option>
+        <option>06 · Roadmap & projets structurants</option>
+        <option>07 · Standards de livrables</option>
+        <option>Autre</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Type de feedback</label>
+      <select class="form-select">
+        <option>Nouvelle information à ajouter</option>
+        <option>Correction d'une information existante</option>
+        <option>Information obsolète à supprimer</option>
+        <option>Nouveau terme à ajouter au glossaire</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <textarea class="form-textarea" style="min-height:80px" placeholder="Ex : Le flux commandes IM passe par l'API Orders et non directement par l'ESB…"></textarea>
+    </div>
+    <div class="modal-row">
+      <button class="btn-cancel" onclick="closeFeedback()">Annuler</button>
+      <button class="btn-submit" onclick="submitFeedback()">Soumettre</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let extractedText = '';
+let extractedHtml = '';
+let uploadedFileName = '';
+let cardCount = 0;
+
+// ─── GRACE SYSTEM PROMPT ─────────────────────────────────────────────────────
+const GRACE_PROMPT = `Tu es Grace, un Business Analyst senior expert en révision de spécifications fonctionnelles, rattaché au pôle Transformation & Technologie de Bongenie Grieder.
+
+Tu analyses des spécifications fonctionnelles rédigées par des BAs et tu produis des commentaires de révision structurés et actionnables.
+
+CONTEXTE BONGENIE (à utiliser pour contextualiser tes commentaires) :
+- Stack SI principal : Business Central (ERP), ESB (bus d'intégration), Sylius (e-commerce), Akeneo (PIM), Sanity (CMS), Salesforce (CRM), Attraqt (merchandising), Channable (product feed), Keepeek (DAM), Azure (blob storage)
+- Projets structurants 2026 : montée de version Sylius (avril–septembre 2026), montée de version ERP (dès mai 2026)
+- Vocabulaire : prix noir = prix plein, prix rouge = prix remisé, ODR = Offre De Remise, 603 = site full price, 605 = site outlet
+
+TON RÔLE :
+1. Identifier les zones d'ombre, manques, ambiguïtés et risques dans la spécification
+2. Détecter les impacts SI non documentés (dépendances d'outils non mentionnées)
+3. Alerter sur les conflits calendaires avec les projets structurants en cours
+4. Proposer des suggestions concrètes et actionnables pour compléter la spec
+5. Prioriser les commentaires par criticité : Bloquant / Important / À vérifier
+
+RÈGLES CRITIQUES :
+- Ne jamais inventer des informations non présentes dans la spec
+- Tes commentaires doivent être précis et directement actionnables
+- Toujours distinguer ce qui est absent (manque) de ce qui est ambigu (à clarifier)
+- Si un outil du SI Bongenie est mentionné, vérifier la cohérence avec le SI connu
+- Limiter à 8 commentaires maximum, en priorisant les plus critiques
+
+FORMAT DE RÉPONSE :
+Retourne UNIQUEMENT un JSON valide, sans texte avant ni après, structuré ainsi :
+{
+  "maturite": "À compléter" | "En cours" | "Prête pour recette" | "Validée",
+  "commentaires": [
+    {
+      "id": "c1",
+      "section": "Nom de la section concernée",
+      "priorite": "bloquant" | "important" | "a_verifier",
+      "titre": "Titre court du commentaire",
+      "observation": "Observation détaillée de Grace (2-4 phrases)",
+      "suggestion": "Suggestion concrète et actionnable (peut être vide si pas de suggestion spécifique)"
+    }
+  ]
+}`;
+
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+function triggerUpload() { document.getElementById('fileInput').click(); }
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  uploadedFileName = file.name;
+
+  const zone = document.getElementById('uploadZone');
+  zone.classList.add('has-file');
+  document.getElementById('uploadLabel').style.display = 'none';
+  const fn = document.getElementById('uploadFilename');
+  fn.style.display = 'block';
+  fn.textContent = '✓ ' + file.name;
+
+  // Extract text with mammoth
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const arrayBuffer = e.target.result;
+      const result = await mammoth.convertToHtml({ arrayBuffer });
+      extractedHtml = result.value;
+
+      // Also get plain text for AI
+      const textResult = await mammoth.extractRawText({ arrayBuffer });
+      extractedText = textResult.value;
+
+      document.getElementById('btnStart').disabled = false;
+      showToast('Document chargé · Prêt pour l\'analyse');
+    } catch (err) {
+      showToast('Erreur de lecture du fichier');
+      console.error(err);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// Drag & drop
+const uz = document.getElementById('uploadZone');
+uz.addEventListener('dragover', e => { e.preventDefault(); uz.classList.add('dragover'); });
+uz.addEventListener('dragleave', () => uz.classList.remove('dragover'));
+uz.addEventListener('drop', e => {
+  e.preventDefault(); uz.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.docx')) { showToast('Format .docx requis'); return; }
+  document.getElementById('fileInput').files = e.dataTransfer.files;
+  handleFile({ files: e.dataTransfer.files });
+});
+
+// ─── START REVISION ───────────────────────────────────────────────────────────
+async function startRevision() {
+  if (!extractedText) return;
+
+  // Show app + loading
+  document.getElementById('landing').style.display = 'none';
+  const app = document.getElementById('app');
+  app.style.display = 'flex';
+  document.getElementById('loadingState').classList.add('show');
+  document.getElementById('headerDate').textContent =
+    new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+  document.getElementById('headerSpecName').textContent = uploadedFileName.replace('.docx','');
+
+  // Inject doc content
+  document.getElementById('docEditor').innerHTML = extractedHtml ||
+    '<p style="color:var(--muted)">Contenu non disponible.</p>';
+
+  const note = document.getElementById('noteInput').value.trim();
+  const userMsg = `Voici la spécification fonctionnelle à réviser :
+
+${note ? `Note du BA : ${note}\n\n` : ''}--- DÉBUT DE LA SPÉCIFICATION ---
+${extractedText.substring(0, 12000)}
+--- FIN DE LA SPÉCIFICATION ---
+
+Analyse cette spécification et retourne tes commentaires de révision au format JSON demandé.`;
+
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 3000,
+        system: GRACE_PROMPT,
+        messages: [{ role: 'user', content: userMsg }]
+      })
+    });
+
+    if (!response.ok) throw new Error(`Erreur API ${response.status}`);
+    const data = await response.json();
+    const raw = data.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+
+    // Parse JSON
+    const start = raw.indexOf('{');
+    const end = raw.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('Réponse JSON invalide');
+    const result = JSON.parse(raw.slice(start, end + 1));
+
+    renderComments(result);
+  } catch (err) {
+    console.error(err);
+    renderError(err.message);
+  } finally {
+    document.getElementById('loadingState').classList.remove('show');
+  }
+}
+
+// ─── RENDER COMMENTS ─────────────────────────────────────────────────────────
+function renderComments(result) {
+  // Update maturity
+  const pill = document.getElementById('maturityPill');
+  const matColors = {
+    'À compléter': { bg: 'rgba(199,80,0,0.2)', color: '#f0a060', border: 'rgba(199,80,0,0.35)', icon: '🟠' },
+    'En cours': { bg: 'rgba(160,125,16,0.2)', color: '#d4a820', border: 'rgba(160,125,16,0.35)', icon: '🟡' },
+    'Prête pour recette': { bg: 'rgba(45,90,64,0.2)', color: '#6abf8a', border: 'rgba(45,90,64,0.35)', icon: '🟢' },
+    'Validée': { bg: 'rgba(45,90,64,0.3)', color: '#4ade80', border: 'rgba(45,90,64,0.5)', icon: '✅' },
+  };
+  const mat = matColors[result.maturite] || matColors['À compléter'];
+  pill.textContent = mat.icon + ' ' + (result.maturite || 'À compléter');
+  pill.style.background = mat.bg;
+  pill.style.color = mat.color;
+  pill.style.border = `1px solid ${mat.border}`;
+
+  // Show comments
+  const body = document.getElementById('commentsBody');
+  const placeholder = document.getElementById('panelPlaceholder');
+  placeholder.style.display = 'none';
+  body.style.display = 'flex';
+  body.innerHTML = '';
+
+  const comments = result.commentaires || [];
+  const priorityLabels = {
+    bloquant: { label: '🔴 Bloquant', cls: 'badge-red' },
+    important: { label: '🟠 Important', cls: 'badge-orange' },
+    a_verifier: { label: '🟡 À vérifier', cls: 'badge-yellow' },
+  };
+
+  comments.forEach((c, i) => {
+    const p = priorityLabels[c.priorite] || priorityLabels.a_verifier;
+    const cardId = `card-${i}`;
+    const replyId = `reply-${i}`;
+
+    const card = document.createElement('div');
+    card.className = 'ccard';
+    card.id = cardId;
+    card.style.animationDelay = `${i * 0.06}s`;
+    card.onclick = (e) => activateCard(e, cardId);
+
+    card.innerHTML = `
+      <div class="ccard-ref">
+        <span>${c.section || 'Général'}</span>
+        <span class="priority-badge ${p.cls}">${p.label}</span>
+      </div>
+      <div class="ccard-body">
+        <div class="ccard-grace"><strong>${escHtml(c.titre)}</strong><br>${escHtml(c.observation)}</div>
+        ${c.suggestion ? `<div class="ccard-suggestion">✏️ ${escHtml(c.suggestion)}</div>` : ''}
+        <div class="decision-row">
+          <button class="btn-decision btn-approve" onclick="approveCard(event,'${cardId}')">✓ Approuvé</button>
+          <button class="btn-decision btn-ignore" onclick="ignoreCard(event,'${cardId}')">✕ Ignoré</button>
+        </div>
+        <button class="btn-reply-toggle" onclick="toggleReply(event,'${replyId}')">↩ Répondre à Grace…</button>
+      </div>
+      <div class="reply-box" id="${replyId}">
+        <textarea class="reply-input" placeholder="Votre réponse…"></textarea>
+        <div class="reply-actions">
+          <span class="reply-type">Réponse au commentaire</span>
+          <button class="btn-send" onclick="sendReply(event,'${replyId}','${cardId}')">Envoyer</button>
+        </div>
+      </div>`;
+
+    body.appendChild(card);
+  });
+
+  updateCount();
+}
+
+function renderError(msg) {
+  const body = document.getElementById('commentsBody');
+  const placeholder = document.getElementById('panelPlaceholder');
+  placeholder.style.display = 'none';
+  body.style.display = 'flex';
+  body.innerHTML = `<div class="error-card">⚠️ Erreur lors de l'analyse : ${escHtml(msg)}<br><br>Vérifiez que votre clé API est configurée sur Vercel et réessayez.</div>`;
+  document.getElementById('openCount').textContent = '—';
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// ─── CARD INTERACTIONS ────────────────────────────────────────────────────────
+function activateCard(e, cardId) {
+  if (e.target.closest('button') || e.target.closest('textarea')) return;
+  document.querySelectorAll('.ccard').forEach(c => c.classList.remove('active'));
+  document.getElementById(cardId)?.classList.add('active');
+}
+
+function approveCard(e, id) {
+  e.stopPropagation();
+  const card = document.getElementById(id);
+  card.classList.remove('active'); card.classList.add('approved');
+  addStatusBadge(card, 'approved');
+  hideDecisionUI(card);
+  updateCount();
+  showToast('Commentaire approuvé · À intégrer dans votre doc');
+}
+
+function ignoreCard(e, id) {
+  e.stopPropagation();
+  const card = document.getElementById(id);
+  card.classList.remove('active'); card.classList.add('ignored');
+  addStatusBadge(card, 'ignored');
+  hideDecisionUI(card);
+  updateCount();
+  showToast('Commentaire ignoré');
+}
+
+function addStatusBadge(card, type) {
+  const ref = card.querySelector('.ccard-ref');
+  if (!ref) return;
+  const ex = ref.querySelector('.status-badge'); if (ex) ex.remove();
+  const s = document.createElement('span');
+  s.className = 'status-badge';
+  s.style.cssText = `font-size:10px;font-weight:600;color:${type === 'approved' ? 'var(--green-mid)' : 'var(--muted)'}`;
+  s.textContent = type === 'approved' ? '✓ Approuvé' : '✕ Ignoré';
+  ref.appendChild(s);
+}
+
+function hideDecisionUI(card) {
+  const dr = card.querySelector('.decision-row'); if (dr) dr.style.display = 'none';
+  const rt = card.querySelector('.btn-reply-toggle'); if (rt) rt.style.display = 'none';
+}
+
+function updateCount() {
+  const open = document.querySelectorAll('.ccard:not(.approved):not(.ignored)').length;
+  document.getElementById('openCount').textContent = open + (open > 1 ? ' ouverts' : ' ouvert');
+}
+
+// ─── REPLY ────────────────────────────────────────────────────────────────────
+function toggleReply(e, replyId) {
+  e.stopPropagation();
+  const box = document.getElementById(replyId);
+  box.classList.toggle('open');
+  if (box.classList.contains('open')) box.querySelector('textarea').focus();
+}
+
+function sendReply(e, replyId, cardId) {
+  e.stopPropagation();
+  const box = document.getElementById(replyId);
+  const ta = box.querySelector('textarea');
+  const text = ta.value.trim(); if (!text) return;
+  const card = document.getElementById(cardId);
+  let history = card.querySelector('.thread-history');
+  if (!history) {
+    history = document.createElement('div');
+    history.className = 'thread-history';
+    card.insertBefore(history, box);
+  }
+  const msg = document.createElement('div');
+  msg.className = 'thread-msg';
+  msg.innerHTML = `<div class="msg-author msg-ba">BA</div><div>${escHtml(text)}</div>`;
+  history.appendChild(msg);
+  ta.value = ''; box.classList.remove('open');
+  showToast('Réponse enregistrée');
+}
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function openLanding() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('uploadZone').classList.remove('has-file');
+  document.getElementById('uploadLabel').style.display = 'block';
+  document.getElementById('uploadFilename').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('commentsBody').innerHTML = '';
+  document.getElementById('commentsBody').style.display = 'none';
+  document.getElementById('panelPlaceholder').style.display = 'flex';
+  extractedText = ''; extractedHtml = ''; uploadedFileName = '';
+}
+
+function downloadDoc() {
+  const content = document.getElementById('docEditor').innerHTML;
+  const blob = new Blob([`<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:Georgia,serif;padding:40px;max-width:800px;margin:0 auto;line-height:1.8}h1{color:#1a3a2a;border-bottom:2px solid #1a3a2a;padding-bottom:12px}h2{color:#2d5a40;margin-top:32px}h3{margin-top:18px}table{border-collapse:collapse;width:100%}th{background:#1a3a2a;color:white;padding:8px 12px;text-align:left}td{padding:8px 12px;border:1px solid #ddd}</style></head><body>${content}</body></html>`], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (uploadedFileName || 'specification') + '_revised.html';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('Document téléchargé');
+}
+
+// ─── FEEDBACK MODAL ───────────────────────────────────────────────────────────
+function openFeedback() { document.getElementById('feedbackModal').classList.add('open'); }
+function closeFeedback() { document.getElementById('feedbackModal').classList.remove('open'); }
+function submitFeedback() { closeFeedback(); showToast('Feedback enregistré · Intégration sous 48h'); }
+document.getElementById('feedbackModal').addEventListener('click', function(e) { if (e.target === this) closeFeedback(); });
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
