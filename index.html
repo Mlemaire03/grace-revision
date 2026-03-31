@@ -222,16 +222,28 @@ textarea.note:focus { border-color:var(--green); }
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h3>Feedback Context Pack</h3>
-    <p>Ce feedback sera intégré lors de la prochaine mise à jour de Grace (sous 48h).</p>
+    <p>Ce feedback sera envoyé au pôle T&T et intégré dans le Context Pack sous 48h.</p>
     <label class="form-label">Section concernée</label>
-    <select><option>03 · Cartographie SI</option><option>04 · Glossaire métier</option><option>05 · Flux métier critiques</option><option>06 · Roadmap & projets structurants</option><option>Autre</option></select>
+    <select id="fbSection">
+      <option>03 · Cartographie SI</option>
+      <option>04 · Glossaire métier</option>
+      <option>05 · Flux métier critiques</option>
+      <option>06 · Roadmap & projets structurants</option>
+      <option>Autre</option>
+    </select>
     <label class="form-label">Type</label>
-    <select><option>Nouvelle information à ajouter</option><option>Correction d'une information existante</option><option>Information obsolète à supprimer</option><option>Nouveau terme à ajouter au glossaire</option></select>
+    <select id="fbType">
+      <option>Nouvelle information à ajouter</option>
+      <option>Correction d'une information existante</option>
+      <option>Information obsolète à supprimer</option>
+      <option>Nouveau terme à ajouter au glossaire</option>
+    </select>
     <label class="form-label">Description</label>
-    <textarea placeholder="Ex : Le flux commandes IM passe par l'API Orders…"></textarea>
+    <textarea id="fbDesc" placeholder="Ex : Le flux commandes IM passe par l'API Orders et non directement par l'ESB…"></textarea>
+    <div id="fbError" style="font-size:12px;color:#c0392b;margin-bottom:8px;display:none;">Merci de renseigner une description.</div>
     <div class="modal-row">
       <button class="btn-cancel" id="btnCancelModal">Annuler</button>
-      <button class="btn-submit" id="btnSubmitModal">Soumettre</button>
+      <button class="btn-submit" id="btnSubmitModal">Envoyer le feedback →</button>
     </div>
   </div>
 </div>
@@ -524,10 +536,63 @@ document.getElementById('btnDl').addEventListener('click', function() {
 });
 
 // ── FEEDBACK MODAL
-document.getElementById('btnFeedback').addEventListener('click', function() { document.getElementById('modalBg').classList.add('on'); });
-document.getElementById('btnCancelModal').addEventListener('click', function() { document.getElementById('modalBg').classList.remove('on'); });
-document.getElementById('btnSubmitModal').addEventListener('click', function() { document.getElementById('modalBg').classList.remove('on'); toast('Feedback enregistré · Intégration sous 48h'); });
-document.getElementById('modalBg').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('on'); });
+document.getElementById('btnFeedback').addEventListener('click', function() {
+  document.getElementById('fbDesc').value = '';
+  document.getElementById('fbError').style.display = 'none';
+  document.getElementById('btnSubmitModal').textContent = 'Envoyer le feedback →';
+  document.getElementById('btnSubmitModal').disabled = false;
+  document.getElementById('modalBg').classList.add('on');
+});
+document.getElementById('btnCancelModal').addEventListener('click', function() {
+  document.getElementById('modalBg').classList.remove('on');
+});
+document.getElementById('modalBg').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('on');
+});
+
+document.getElementById('btnSubmitModal').addEventListener('click', function() {
+  var section = document.getElementById('fbSection').value;
+  var type = document.getElementById('fbType').value;
+  var description = document.getElementById('fbDesc').value.trim();
+
+  if (!description) {
+    document.getElementById('fbError').style.display = 'block';
+    return;
+  }
+  document.getElementById('fbError').style.display = 'none';
+
+  var btn = document.getElementById('btnSubmitModal');
+  btn.textContent = 'Envoi en cours…';
+  btn.disabled = true;
+
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      section: section,
+      type: type,
+      description: description,
+      date: new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' })
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      document.getElementById('modalBg').classList.remove('on');
+      toast('✓ Feedback envoyé · Intégration sous 48h');
+    } else {
+      btn.textContent = 'Envoyer le feedback →';
+      btn.disabled = false;
+      toast('Erreur : ' + (data.error || 'réessayez'));
+    }
+  })
+  .catch(function(err) {
+    btn.textContent = 'Envoyer le feedback →';
+    btn.disabled = false;
+    toast('Erreur réseau · réessayez');
+    console.error(err);
+  });
+});
 
 // ── TOAST
 function toast(msg) {
